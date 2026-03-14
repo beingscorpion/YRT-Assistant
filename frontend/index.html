@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YT Research</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── Reset & Base ─────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --red:       #FF0000;
+      --red-dim:   #CC0000;
+      --red-glow:  rgba(255, 0, 0, 0.18);
+      --bg:        #0A0A0A;
+      --surface:   #111111;
+      --surface2:  #1A1A1A;
+      --border:    #2A2A2A;
+      --text:      #F1F1F1;
+      --muted:     #717171;
+      --radius:    10px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* ── Scanline overlay ─────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.04) 2px,
+        rgba(0,0,0,0.04) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* ── Header ───────────────────────────────────── */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(10,10,10,0.92);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--red);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 16px var(--red-glow);
+    }
+
+    .logo-icon svg { width: 18px; height: 18px; fill: #fff; }
+
+    .logo-text {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.5rem;
+      letter-spacing: 0.06em;
+      color: var(--text);
+    }
+
+    .logo-text span { color: var(--red); }
+
+    .header-badge {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    /* ── Hero ─────────────────────────────────────── */
+    .hero {
+      padding: 5rem 2rem 3rem;
+      text-align: center;
+      position: relative;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 600px; height: 300px;
+      background: radial-gradient(ellipse at top, rgba(255,0,0,0.12), transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-eyebrow {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--red);
+      margin-bottom: 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .hero-eyebrow::before,
+    .hero-eyebrow::after {
+      content: '';
+      display: inline-block;
+      width: 30px; height: 1px;
+      background: var(--red);
+      opacity: 0.6;
+    }
+
+    h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(3rem, 7vw, 5.5rem);
+      line-height: 0.95;
+      letter-spacing: 0.03em;
+      margin-bottom: 1.2rem;
+    }
+
+    h1 em {
+      font-style: normal;
+      color: var(--red);
+      display: block;
+    }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--muted);
+      max-width: 480px;
+      margin: 0 auto 2.5rem;
+      line-height: 1.6;
+      font-weight: 300;
+    }
+
+    /* ── Shared ───────────────────────────────────── */
+    .main-card {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 0 1.5rem 4rem;
+      width: 100%;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.6rem;
+    }
+
+    .btn-primary {
+      background: var(--red);
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 12px 26px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-primary:hover {
+      background: var(--red-dim);
+      box-shadow: 0 4px 20px rgba(255,0,0,0.3);
+    }
+
+    .btn-primary:active { transform: scale(0.97); }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ── Research Form ────────────────────────────── */
+    .research-form {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .query-textarea {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      padding: 14px 16px;
+      resize: vertical;
+      min-height: 100px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .query-textarea::placeholder { color: var(--muted); }
+
+    .query-textarea:focus {
+      border-color: var(--red);
+      box-shadow: 0 0 0 3px rgba(255,0,0,0.1);
+    }
+
+    .form-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .form-row .text-input { flex: 1; }
+
+    /* ── Answer Card ──────────────────────────────── */
+    .answer-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+      animation: slideUp 0.35s ease;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .answer-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,0,0,0.05);
+    }
+
+    .answer-header-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--red);
+      box-shadow: 0 0 8px var(--red);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+
+    .answer-header-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--red);
+    }
+
+    .answer-header-tokens {
+      margin-left: auto;
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+
+    .answer-body {
+      padding: 1.4rem 1.6rem;
+      font-size: 0.95rem;
+      line-height: 1.75;
+      color: var(--text);
+    }
+
+    /* ── Sources ──────────────────────────────────── */
+    .sources-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.8rem;
+    }
+
+    .source-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--red);
+      border-radius: 0 8px 8px 0;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      animation: slideUp 0.3s ease;
+      transition: border-color 0.2s;
+    }
+
+    .source-item:hover { border-left-color: #ff4444; }
+
+    .source-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      flex-wrap: wrap;
+    }
+
+    .source-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .source-timestamp {
+      font-size: 0.72rem;
+      background: rgba(255,0,0,0.12);
+      color: var(--red);
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+
+    .source-link {
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-decoration: none;
+      margin-left: auto;
+      transition: color 0.2s;
+    }
+
+    .source-link:hover { color: var(--red); }
+
+    .source-text {
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* ── Loading spinner ──────────────────────────── */
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ── Toast ────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 20px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      z-index: 999;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    #toast.show { transform: translateX(-50%) translateY(0); }
+    #toast.error { border-color: var(--red); }
+
+    #toast .toast-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #22c55e;
+      flex-shrink: 0;
+    }
+
+    #toast.error .toast-dot { background: var(--red); }
+
+    /* ── Empty state ──────────────────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--muted);
+    }
+
+    .empty-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.4;
+    }
+
+    .empty-text {
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+    /* ── Footer ───────────────────────────────────── */
+    footer {
+      margin-top: auto;
+      border-top: 1px solid var(--border);
+      padding: 1.2rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    footer span { color: var(--red); }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <a class="logo" href="#">
+      <div class="logo-icon">
+        <!-- YouTube play icon -->
+        <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      </div>
+      <span class="logo-text">YT<span>Research</span></span>
+    </a>
+    <div class="header-badge">Powered by LangChain + Qdrant</div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-eyebrow">AI-Powered Video Intelligence</div>
+    <h1>Search Inside<em>Any Video</em></h1>
+    <p class="hero-sub">Ask anything. Your assistant searches YouTube automatically and synthesizes answers from real videos.</p>
+
+  </section>
+
+  <!-- Main -->
+  <main class="main-card">
+
+    <!-- ── Research Panel ── -->
+    <div class="panel active" id="panel-research">
+      <div class="research-form">
+        <label class="form-label" for="query">Your question</label>
+        <textarea
+          class="query-textarea"
+          id="query"
+          placeholder="e.g. What did they say about transformer architecture in the latest lecture?"
+          rows="3"
+        ></textarea>
+
+        <div class="form-row">
+          <button class="btn-primary" id="research-btn" onclick="doResearch()" style="margin-left:auto">
+            <span id="research-btn-label">Ask</span>
+            <div id="research-spinner" class="spinner" style="display:none"></div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Answer -->
+      <div id="answer-section">
+        <div class="empty-state">
+          <div class="empty-icon">▶</div>
+          <p class="empty-text">Ask a question above to get started.<br/>Answers are grounded in your indexed videos.</p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    Built with <span>♥</span> using FastAPI · LangChain · Qdrant
+  </footer>
+
+  <!-- Toast -->
+  <div id="toast">
+    <div class="toast-dot"></div>
+    <span id="toast-msg">Done</span>
+  </div>
+
+<script>
+  // ── Config ─────────────────────────────────────────
+  // Change this if your FastAPI server runs on a different port/host
+  const API_BASE = "http://localhost:8000";
+
+  // ── Toast ───────────────────────────────────────────
+  let toastTimer;
+  function showToast(msg, isError = false) {
+    const el = document.getElementById('toast');
+    document.getElementById('toast-msg').textContent = msg;
+    el.classList.toggle('error', isError);
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+  }
+
+  // ── Research ────────────────────────────────────────
+  async function doResearch() {
+    const query = document.getElementById('query').value.trim();
+    if (!query) { showToast('Please enter a question.', true); return; }
+
+    const btn = document.getElementById('research-btn');
+    const label = document.getElementById('research-btn-label');
+    const spinner = document.getElementById('research-spinner');
+
+    btn.disabled = true;
+    label.style.display = 'none';
+    spinner.style.display = 'block';
+
+    try {
+      const payload = { query, top_k: 5 };
+
+      const res = await fetch(`${API_BASE}/api/research`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `Server error ${res.status}`);
+      }
+
+      const data = await res.json();
+      renderAnswer(data);
+
+    } catch (e) {
+      showToast(e.message || 'Request failed', true);
+    } finally {
+      btn.disabled = false;
+      label.style.display = 'inline';
+      spinner.style.display = 'none';
+    }
+  }
+
+  function renderAnswer(data) {
+    const sec = document.getElementById('answer-section');
+    const tokensLabel = data.tokens_used != null ? `${data.tokens_used} tokens` : '';
+
+    const sourcesHTML = (data.sources || []).map(s => `
+      <div class="source-item">
+        <div class="source-meta">
+          <span class="source-title">${escHtml(s.video_title)}</span>
+          ${s.timestamp ? `<span class="source-timestamp">${escHtml(s.timestamp)}</span>` : ''}
+          <a class="source-link" href="${escHtml(s.video_url)}" target="_blank" rel="noopener">↗ Watch</a>
+        </div>
+        <p class="source-text">${escHtml(s.text)}</p>
+      </div>
+    `).join('');
+
+    sec.innerHTML = `
+      <div class="answer-card">
+        <div class="answer-header">
+          <div class="answer-header-dot"></div>
+          <span class="answer-header-label">Answer</span>
+          <span class="answer-header-tokens">${tokensLabel}</span>
+        </div>
+        <div class="answer-body">${escHtml(data.answer)}</div>
+      </div>
+      ${data.sources?.length ? `
+        <p class="sources-title">Sources (${data.sources.length})</p>
+        ${sourcesHTML}
+      ` : ''}
+    `;
+  }
+
+  // ── Helpers ─────────────────────────────────────────
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // Allow Ctrl/Cmd+Enter to submit the query
+  document.getElementById('query').addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') doResearch();
+  });
+</script>
+</body>
+</html>
