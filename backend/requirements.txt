@@ -1,0 +1,18 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+pydantic
+
+# LangChain ecosystem
+langchain-community
+langchain-groq
+langchain-huggingface
+langchain-qdrant
+
+# Embeddings & vector store
+fastembed
+qdrant-client
+
+# YouTube
+google-api-python-client
+youtube-transcript-api

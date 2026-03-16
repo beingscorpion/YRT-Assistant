@@ -1,12 +1,13 @@
 import os
 import time
 from typing import Iterable, List, Tuple, Dict, Any
+from concurrent.futures import ThreadPoolExecutor
 
 from dotenv import load_dotenv
 from googleapiclient.discovery import build
 from langchain_core.documents import Document
 from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptFound
-from youtube_transcript_api.proxies import GenericProxyConfig
+from youtube_transcript_api.proxies import WebshareProxyConfig
 
 
 load_dotenv()
@@ -71,45 +72,44 @@ def fetch_video_transcripts(
     Returns a list of (video_metadata, fetched_transcript) tuples.
     """
     ytt_api = YouTubeTranscriptApi(
-        proxy_config=GenericProxyConfig(
-            http_url="http://62.60.177.204:34094",
-            https_url="http://62.60.177.204:34094",
+        proxy_config=WebshareProxyConfig(
+            proxy_username="ktjjauej-rotate",
+            proxy_password="h34wterk06fw", 
         )
     )
-    videos_with_transcripts: List[Tuple[Dict[str, Any], Any]] = []
 
-    for video in videos_metadata:
-        time.sleep(2)  # avoid rate-limiting
-
+    def _fetch_one(video: Dict[str, Any]):
         try:
+            time.sleep(1.5)  # Increased from 0.5s to be safe
             transcript_list = ytt_api.list(video_id=video["videoId"])
 
             try:
-                # 1st try: manual English transcript
                 fetched = transcript_list.find_transcript(["en"]).fetch()
-
             except NoTranscriptFound:
                 try:
-                    # 2nd try: auto-generated English transcript
                     fetched = transcript_list.find_generated_transcript(["en"]).fetch()
-
                 except NoTranscriptFound:
-                    # 3rd try: translate any available transcript → English
                     available = list(transcript_list)
                     if not available:
                         print(f"⚠ No transcripts at all for: {video['title']}")
-                        continue
-
+                        return None
                     print(f"🔄 Translating [{available[0].language_code}] → en for: {video['title']}")
                     fetched = available[0].translate("en").fetch()
 
-            videos_with_transcripts.append((video, fetched))
             print(f"✅ Got transcript: {video['title']}")
+            return (video, fetched)
 
         except TranscriptsDisabled:
             print(f"🚫 Transcripts disabled: {video['title']}")
+            return None
         except Exception as e:
             print(f"❌ Error ({video['title']}): {e}")
+            return None
+
+    # Run transcript fetches sequentially
+    results = list(map(_fetch_one, videos_metadata))
+
+    videos_with_transcripts = [r for r in results if r is not None]
 
     print(f"\n🎉 Total videos with transcripts: {len(videos_with_transcripts)}")
     return videos_with_transcripts

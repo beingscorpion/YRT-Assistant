@@ -2,7 +2,7 @@ from typing import List, Tuple
 
 from langchain_core.documents import Document
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_groq import ChatGroq
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_qdrant import QdrantVectorStore, RetrievalMode, FastEmbedSparse
 
 
@@ -13,10 +13,7 @@ def _create_embeddings():
     )
 
 
-def build_hybrid_retriever(
-    docs: List[Document],
-    collection_name: str = "youtube1",
-):
+def build_hybrid_retriever( docs: List[Document], collection_name: str = "youtube1"):
     """
     Build a Qdrant-backed hybrid (dense + sparse) retriever in-memory,
     following the logic from the notebook.
@@ -46,16 +43,13 @@ def build_hybrid_retriever(
 
 
 def _create_llm():
-    return ChatGroq(
-        model="openai/gpt-oss-120b",
+    return ChatGoogleGenerativeAI(
+        model="gemini-1.5-flash",
         temperature=0.2,
     )
 
 
-def answer_question_with_rag(
-    question: str,
-    retriever,
-):
+def answer_question_with_rag( question: str, retriever ):
     """
     Retrieve relevant chunks with the given retriever and answer the question
     with Gemini, mirroring the notebook's simple `llm.invoke(f"{results} ...")`.
@@ -66,24 +60,4 @@ def answer_question_with_rag(
     response = llm.invoke(f"{docs}     question: '{question}' ")
 
     return response.text, docs
-
-
-def stream_answer_with_rag(
-    question: str,
-    retriever,
-):
-    """
-    Like answer_question_with_rag but yields token chunks for SSE streaming.
-    Returns (token_generator, docs) so the caller can stream tokens and also
-    access the retrieved documents.
-    """
-    llm = _create_llm()
-    docs: List[Document] = retriever.invoke(question)
-    prompt = f"{docs}     question: '{question}' "
-
-    def token_generator():
-        for chunk in llm.stream(prompt):
-            yield chunk.text if hasattr(chunk, "text") else chunk.content
-
-    return token_generator(), docs
 
