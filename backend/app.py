@@ -286,13 +286,40 @@ async def research_stream(req: ResearchRequest):
 
 
 # ── Serve the frontend ───────────────────────────────────────────────────────
-FRONTEND_DIR = PROJECT_ROOT / "frontend"
+def _resolve_frontend_dir() -> Path:
+    """
+    Resolve where the built frontend lives.
+
+    - Local dev: PROJECT_ROOT/frontend
+    - Some deployment setups: PROJECT_ROOT/var/frontend
+    """
+    candidates = [
+        PROJECT_ROOT / "frontend",
+        PROJECT_ROOT / "var" / "frontend",
+    ]
+    for d in candidates:
+        if (d / "index.html").exists():
+            return d
+    # Default to the local-dev path; the route will raise a 404 if missing.
+    return candidates[0]
+
+
+FRONTEND_DIR = _resolve_frontend_dir()
 
 
 @app.get("/")
 async def serve_index():
     """Serve the frontend index.html at the root URL."""
-    return FileResponse(FRONTEND_DIR / "index.html")
+    index_path = FRONTEND_DIR / "index.html"
+    if not index_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "Frontend index.html not found. "
+                "Expected at frontend/index.html or var/frontend/index.html."
+            ),
+        )
+    return FileResponse(index_path)
 
 
 # Mount any other static assets (CSS, JS, images) if they exist later
