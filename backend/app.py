@@ -290,13 +290,30 @@ def _resolve_frontend_dir() -> Path:
     """
     Resolve where the built frontend lives.
 
-    - Local dev: PROJECT_ROOT/frontend
-    - Some deployment setups: PROJECT_ROOT/var/frontend
+    Supports multiple layouts:
+    - Local dev: <repo>/frontend
+    - If deploying with Vercel root set to `backend/`: <repo>/backend/frontend
+    - Some deployment setups: <repo>/var/frontend
     """
-    candidates = [
-        PROJECT_ROOT / "frontend",
-        PROJECT_ROOT / "var" / "frontend",
-    ]
+    # Allow explicit override (useful on hosts like Vercel).
+    override = os.getenv("FRONTEND_DIR")
+    if override:
+        p = Path(override)
+        if (p / "index.html").exists():
+            return p
+
+    candidates = []
+
+    # 1) Repo-root layouts (PROJECT_ROOT is parent of backend/)
+    candidates.append(PROJECT_ROOT / "frontend")
+    candidates.append(PROJECT_ROOT / "var" / "frontend")
+    candidates.append(PROJECT_ROOT / "backend" / "frontend")
+
+    # 2) Backend-root layouts (when CWD / "root directory" is backend/)
+    backend_dir = Path(__file__).resolve().parent
+    candidates.append(backend_dir / "frontend")
+    candidates.append(backend_dir.parent / "frontend")
+
     for d in candidates:
         if (d / "index.html").exists():
             return d
