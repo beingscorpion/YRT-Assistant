@@ -98,7 +98,7 @@ def optimize_search_query(raw_query: str) -> str:
 
 
 # ── Helper: build the full YouTube RAG pipeline ──────────────────────────────
-def build_youtube_rag_pipeline(search_query: str, max_results: int = 5):
+def build_youtube_rag_pipeline(search_query: str, max_results: int = 3):
     """Optimise query → search YouTube → fetch transcripts → chunk → build retriever."""
     optimized_query = optimize_search_query(search_query)
     videos_metadata = search_youtube_videos(
@@ -344,6 +344,6 @@ async def serve_index():
 
 
 # ── Run with: python app.py ──────────────────────────────────────────────────
-# if __name__ == "__main__":
-#     import uvicorn
-#     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)

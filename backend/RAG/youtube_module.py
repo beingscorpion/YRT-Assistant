@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from googleapiclient.discovery import build
 from langchain_core.documents import Document
 from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptFound
-from youtube_transcript_api.proxies import WebshareProxyConfig
+from youtube_transcript_api.proxies import WebshareProxyConfig , GenericProxyConfig
 
 
 load_dotenv()
@@ -71,12 +71,20 @@ def fetch_video_transcripts(
     Uses a proxy to avoid YouTube blocking and sleeps between requests.
     Returns a list of (video_metadata, fetched_transcript) tuples.
     """
+    # ytt_api = YouTubeTranscriptApi(
+    #     proxy_config=WebshareProxyConfig(
+    #         proxy_username="pozeshlt-rotate",
+    #         proxy_password="ply89vk7jpcc", 
+    #         ) 
+    # )
+
     ytt_api = YouTubeTranscriptApi(
-        proxy_config=WebshareProxyConfig(
-            proxy_username="ktjjauej-rotate",
-            proxy_password="h34wterk06fw", 
+        proxy_config=GenericProxyConfig(
+            http_url="http://85.198.96.242:3128",
+            https_url="http://85.198.96.242:3128",
         )
     )
+
 
     def _fetch_one(video: Dict[str, Any]):
         try:
