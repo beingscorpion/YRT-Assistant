@@ -296,7 +296,7 @@ async def serve_index():
 
 
 # Mount any other static assets (CSS, JS, images) if they exist later
-app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
+# app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
 
 
 # ── Run with: python app.py ──────────────────────────────────────────────────
