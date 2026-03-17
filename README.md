@@ -9,6 +9,8 @@ An end‑to‑end **YouTube research assistant** that turns natural‑language q
 
 This project is designed to **improve over typical “one‑video + manual search” YouTube usage** by automatically finding multiple high‑quality videos, chunking their transcripts, and answering questions with a Retrieval‑Augmented Generation (RAG) pipeline.
 
+NOTE: Needs paid rotating residental proxy to work 
+
 ---
 
 ### Tech Stack
