@@ -1,13 +1,11 @@
 import os
 import time
 from typing import Iterable, List, Tuple, Dict, Any
-from concurrent.futures import ThreadPoolExecutor
 
 from dotenv import load_dotenv
 from googleapiclient.discovery import build
 from langchain_core.documents import Document
-from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptFound
-from youtube_transcript_api.proxies import WebshareProxyConfig , GenericProxyConfig
+import serpapi
 
 
 load_dotenv()
@@ -19,6 +17,14 @@ def _get_youtube_client():
         raise ValueError("YOUTUBE_API_KEY is not set in the environment")
 
     return build("youtube", "v3", developerKey=api_key)
+
+
+def _get_serpapi_client():
+    api_key = os.getenv("SERPAPI_API_KEY")
+    if not api_key:
+        raise ValueError("SERPAPI_API_KEY is not set in the environment")
+
+    return serpapi.Client(api_key=api_key)
 
 
 def search_youtube_videos(
@@ -62,61 +68,42 @@ def fetch_video_transcripts(
     videos_metadata: Iterable[Dict[str, Any]],
 ) -> List[Tuple[Dict[str, Any], Any]]:
     """
-    For each video in `videos_metadata`, try to fetch a transcript in English.
-    Fallback chain:
-      1. Manual English transcript
-      2. Auto-generated English transcript
-      3. Translate any available transcript → English
+    For each video in `videos_metadata`, fetch an English transcript using
+    SerpAPI's `youtube_video_transcript` engine.
 
-    Uses a proxy to avoid YouTube blocking and sleeps between requests.
-    Returns a list of (video_metadata, fetched_transcript) tuples.
+    Returns a list of (video_metadata, transcript_segments) tuples where
+    `transcript_segments` is SerpAPI's `transcript` array.
     """
-    # ytt_api = YouTubeTranscriptApi(
-    #     proxy_config=WebshareProxyConfig(
-    #         proxy_username="pozeshlt-rotate",
-    #         proxy_password="ply89vk7jpcc", 
-    #         ) 
-    # )
 
-    ytt_api = YouTubeTranscriptApi(
-        proxy_config=GenericProxyConfig(
-            http_url="http://85.198.96.242:3128",
-            https_url="http://85.198.96.242:3128",
-        )
-    )
-
+    client = _get_serpapi_client()
 
     def _fetch_one(video: Dict[str, Any]):
         try:
-            time.sleep(1.5)  # Increased from 0.5s to be safe
-            transcript_list = ytt_api.list(video_id=video["videoId"])
+            time.sleep(1.0)  # SerpAPI is rate-limited; keep requests spaced out
 
-            try:
-                fetched = transcript_list.find_transcript(["en"]).fetch()
-            except NoTranscriptFound:
-                try:
-                    fetched = transcript_list.find_generated_transcript(["en"]).fetch()
-                except NoTranscriptFound:
-                    available = list(transcript_list)
-                    if not available:
-                        print(f"⚠ No transcripts at all for: {video['title']}")
-                        return None
-                    print(f"🔄 Translating [{available[0].language_code}] → en for: {video['title']}")
-                    fetched = available[0].translate("en").fetch()
+            payload: Dict[str, Any] = {
+                "engine": "youtube_video_transcript",
+                "v": video["videoId"],
+                "type": "asr",
+                "language_code": "en",
+            }
+            data = client.search(payload)
+            transcript = data.get("transcript") or []
+
+            if not transcript:
+                print(f"⚠ No transcript segments for: {video['title']}")
+                return None
 
             print(f"✅ Got transcript: {video['title']}")
-            return (video, fetched)
+            # transcript is an array of objects with keys like:
+            # start_ms, end_ms, snippet, start_time_text
+            return (video, transcript)
 
-        except TranscriptsDisabled:
-            print(f"🚫 Transcripts disabled: {video['title']}")
-            return None
         except Exception as e:
             print(f"❌ Error ({video['title']}): {e}")
             return None
 
-    # Run transcript fetches sequentially
     results = list(map(_fetch_one, videos_metadata))
-
     videos_with_transcripts = [r for r in results if r is not None]
 
     print(f"\n🎉 Total videos with transcripts: {len(videos_with_transcripts)}")
@@ -135,24 +122,43 @@ def build_docs_from_transcripts(
     overlap: int = 200,
 ) -> List[Document]:
     """
-    Convert fetched YouTube transcripts into LangChain `Document` chunks.
-    Mirrors the logic from the notebook's `docs` construction.
+    Convert SerpAPI transcript segments into LangChain `Document` chunks.
+
+    Each transcript segment uses SerpAPI keys:
+      - `snippet`: transcript text
+      - `start_ms`: segment start time in milliseconds
     """
     docs: List[Document] = []
 
     for video, fetched in videos_with_transcripts:
-        snippets = getattr(fetched, "snippets", [])
-        if not snippets:
+        segments = fetched
+        if not segments:
             continue
 
         chunk_text = ""
-        chunk_start = snippets[0].start
+        chunk_start_ms = segments[0].get("start_ms")
 
-        for seg in snippets:
-            chunk_text += " " + seg.text
+        def _coerce_ms(value: Any) -> int | None:
+            if value is None:
+                return None
+            if isinstance(value, (int, float)):
+                return int(value)
+            try:
+                return int(float(str(value)))
+            except Exception:
+                return None
+
+        for seg in segments:
+            snippet = seg.get("snippet")
+            if not snippet:
+                continue
+
+            seg_start_ms = _coerce_ms(seg.get("start_ms"))
+            chunk_text += " " + snippet
 
             if len(chunk_text) >= chunk_size:
-                timestamp_secs = int(chunk_start)
+                ts_ms = _coerce_ms(chunk_start_ms) or seg_start_ms or 0
+                timestamp_secs = int(ts_ms / 1000)
 
                 docs.append(
                     Document(
@@ -169,10 +175,11 @@ def build_docs_from_transcripts(
                     )
                 )
                 chunk_text = chunk_text[-overlap:]
-                chunk_start = seg.start
+                chunk_start_ms = seg_start_ms or chunk_start_ms
 
         if chunk_text.strip():
-            timestamp_secs = int(chunk_start)
+            ts_ms = _coerce_ms(chunk_start_ms) or 0
+            timestamp_secs = int(ts_ms / 1000)
             docs.append(
                 Document(
                     page_content=chunk_text.strip(),

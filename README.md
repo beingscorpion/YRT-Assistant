@@ -127,6 +127,7 @@ pip install -r requirements.txt
 
 ```bash
 YOUTUBE_API_KEY=your_youtube_data_v3_api_key
+SERPAPI_API_KEY=your_serpapi_key
 GROQ_API_KEY=your_groq_api_key
 ```
 

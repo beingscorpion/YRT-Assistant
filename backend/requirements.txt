@@ -15,4 +15,4 @@ qdrant-client
 
 # YouTube
 google-api-python-client
-youtube-transcript-api
+serpapi
