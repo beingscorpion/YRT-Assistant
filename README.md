@@ -153,7 +153,7 @@ API endpoints:
 
 - **Answer quality / coverage**: single‑video summary (\(~60–70%\) subtopic coverage) → multi‑video RAG (\(~85–95%\))  
   **≈ +35% improvement**
-- **Time‑to‑first‑useful‑answer**: manual search + scrubbing (3–8 min) → app (55 sec)  
+- **Time‑to‑first‑useful‑answer**: manual search + scrubbing (3–5 min) → app (30 sec)  
   **≈ 91% faster**
 - **Source exploration overhead**: jumping to exact timestamps reduces searching/scrubbing by  
-  **≈ 70%**
+  **≈ 80%**
